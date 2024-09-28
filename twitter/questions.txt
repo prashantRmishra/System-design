@@ -1,0 +1,5 @@
+How to choose the database sql or nosql
+Read more about memecache
+round robin algorithm
+ranking and timeline generation
+uniqueue id generator
