@@ -90,7 +90,7 @@ The basic idea behind Redis streams is that we want to durably add items to a lo
 A simple example is the work queue, we want to add items in the queue and have them processed, at any point in time one of our workers might fail, at these instances we want to reprocess them once the failure is detected.
 The Redis steam adds items to the queue using `XADD` and has a single consumer group of workers attached to the steam to process them, and when worker failure occurs Redis stream provides a way for a new worker to `XCLAIM` and restart the processing the messages/items in the queue.
 
-[Redis for proximity search](https://youtu.be/fmT5nlEkl3U?t=1412)
+**[Redis for proximity search](https://youtu.be/fmT5nlEkl3U?t=1412)**
 Redis natively supports geospatial index with commands like GEOADD, GEORADIUS
 If you have a list of items that have locations and you want to search them by locations then it is good to use a geospatial index for the same.
 
