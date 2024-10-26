@@ -2,11 +2,17 @@
 # Elastic Search
 
 [Potential Potholes in Elastic search](#potholes)
+
 [Nodes in Elastic search](#nodes-in-elastic-search)
+
 [Shards and replicas](#shards-and-replicas)
+
 [What is inside a shard?](#what-is-inside-of-the-shards)
+
 [How updates/deletes work in Elastic search?](#how-we-support-updates-in-elastic-search-and-how-that-works-from-lucene-perspective-)
+
 [How documents are stored in Lucene segments?](#how-documents-are-stored-inside-the-lucene-segments)
+
 [How the search queries are matched](#how-to-match-the-search-query)
 [Activity diagram of Elastic search working](#a-walk-through-the-entire-layer-of-the-onion)
 
