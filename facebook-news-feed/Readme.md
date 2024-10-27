@@ -223,7 +223,10 @@ Response:{
 ## Questions
 
 What is api gateway? is it any different from load balancers ?
+
 What is graph database like Neo4j?
+
 What is partition key of Amazon's DynamoDb?
+
 
 ---
