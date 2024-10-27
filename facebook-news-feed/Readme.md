@@ -222,7 +222,7 @@ Response:{
 
 ## Questions
 
-What is api gateway? is it any different from load balancers ?
+[What is api gateway? is it any different from load balancers ?](https://dev.to/prashantrmishra/common-terminology-in-system-design-1jhh#difference-between-api-gateway-and-load-balancer)
 
 What is graph database like Neo4j?
 
