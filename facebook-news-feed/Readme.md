@@ -1,17 +1,22 @@
 # FaceBook News Feed
 
+## [Reference](https://www.hellointerview.com/learn/system-design/answer-keys/fb-news-feed)
+
 [Requirements](#requirements)
 
-[Design constraint](#design-constraint)
+[Design Constraint](#design-constraint)
 
-[Core entities](#core-entities)
+[Core Entities](#core-entities)
 
-[Api or interfaces](#api-or-interface)
+[Api or Interfaces](#api-or-interface)
 
-[High level design](#high-level-design)
+[High Level Design](#high-level-design)
 
+[Questions](#questions)
 
+[Deep Dive](#deep-dive)
 
+---
 
 ## Requirements
 
@@ -75,27 +80,29 @@ Response:{
 }
 
 ```
-## General flow Optional
+
 ## High level design
 
-- **User Should be able to post** and access it via postId
+---
+- **User Should be able to post** and access it via `postId`
   -   We are going to build a basic flow and add more complexities later on
   -   Since we know we will have to scale later we will put horizontally scaled service behind the **API gateway/load-balancer**
   -   Leaving caching for the deep dive part
   -   We can handle more traffic by scaling horizontal i.e by  addition post-service
-  -   User hit API gateway, which sends request to one of the instances of post-service which creates an insert event in db.
+  -   User hit API gateway, which sends request to one of the instances of post-service which creates an insert event in `Post` table in db (with `postId` being primary key).
   
 ![post](image.png)
 
   -   For **database** we can use key-value store like **Amazon's DynamoDb** for the sake of its simplicity and scalability and we can provision nearly limitless storage provided we spread our load evenly on our partitions
-  -   
+  
+---
 -   **User should be able to follow** other Users
     - Following a friend/page on facebook is like many to many relationship, we can use another table for this called Follow with `userFollowing:userFollowed` as the primary key.
     - We can create partition on user following to quickly see user's they follow economically, we can also create a secondary index on `userFollowed` to get all the users that follow them.
   
 ![follow](image-1.png)
 
-
+---
 
 
 -   **User should be able to view a feed of posts** from people they follow
@@ -105,20 +112,22 @@ Response:{
         -   Showing those posts in chronological order on the feed
     -   We will start with naive approach and we will iteratively improve the design. We will start with the naive solution and solve the scaling problem separately
     -   We have and index on follow table to get the list of users a user follows quickly but we don't have any index on post table to get posts of various users.
-    -   We can create a partition key on post table for `userId` and sort key on timestamp of the post this will sort the posts of the user within the partition in chronological order.
-    -   Note: partition key on userId will store all the posts from that user in the same partition making it quick to get all the post and sort key on the timestamp will the posts within each users partition by timestamp
+    -   We can create a partition key for post table on `userId` and sort key on `timestamp` of the post this will sort the posts of the user within the partition in chronological order. This will allow us to quickly fetch the posts by a user.
+    -   Note: partition key on `userId` will store all the posts from that user in the same partition making it quick to get all the `post` and sort key on the `timestamp` with the posts within each users partition by `userId`
   
 ![feed-service](image-2.png) 
 
-    - Here we have the simple feed service which will fetch all the users the given user follow from the follow table and get all the posts made by those users from the post table sorted on the basis of timestamp and finally
-  the feed service will return the result back to user's feed.
 
-    - This simple approach has challenges like
-      - Our user may be following a lot of people 
-      - Those people may have a lot of posts
-      - Total set of posts will be very large due to 1 and 2
-    - Before we dive into these complexities let finish the functional requirements first
+***Here we have the simple feed service which will fetch all the users the given user follow from the follow table and get all the posts made by those users from the post table sorted on the basis of timestamp and finally the feed service will return the result back to user's feed.***
 
+**This simple approach has challenges like**
+
+        1. Our user may be following a lot of people 
+        2. Those people may have a lot of posts
+        3. Total set of posts will be very large due to 1 and 2
+        4. Before we dive into these complexities let finish the functional requirements first
+
+---
 
 - **User should be able to scroll their feed**
   - We want to give almost infinite scroll to the user, for this we need to know what they have already seen in their feed.
@@ -130,6 +139,8 @@ Response:{
   - This satisfies the basic requirements, but very performant or scalable!
 
 ![pagination-feed-service](image-3.png)
+
+---
 
 ## Deep dive
 
@@ -145,6 +156,7 @@ Response:{
   All though it improves the read performance significantly, but it introduces another issue, what if a user having huge followers creates a post, then we will have to write to millions of 
   Feeds efficiently. Let us look into that issue next.
 
+---
 - **How to handle users who have huge number of following?**
   - When a user a large number of followers we again have the same fan-out problem.
   - When we create a post, we need to write to million of feed records. Since the we allow some inconsistency with eventual consistency within 1min window we have very little time to perform these writes in feed table.
@@ -160,18 +172,58 @@ Response:{
         - Since our system can handle some delay of when a post is created and when it can be available in feed, we can queue up the write requests and have a fleet of workers consumes these requests and update feed.
         - Any queue will work here as long as it supports at least once delivery of messages and is highly scalable like Amazon's Simple Queue Service(SQS) will be great.
         - When ever a new post is created an entry will be added in the queue with the postID and the creator userId, the worker will lookup all the followers of that creator and update the feed record by prepending the postID at the front of the feed record.
-      - Challenges:
+      - *Challenges*:
         - The Throughput of the workers need to be enormous, for small account with limited no. of followers this is not a problem: we will only be writing to few hundreds of feed.
         - But for mega accounts with millions of followers workers have a lot of work to do.
   
-![user-million-followers](image-5.png)
-
+    - **Great Solution: async workers with Hybrid feed**
+      - Extending the above approach with slight modification, we can choose which account we would like to precompute and which don't.
+      - For justin Bieber (and other accounts having millions of followers) instead of writing to millions of followers feed record we can simply add a flag in `Follow` table which indicate this perticular follow is not precomputed {like `prashant123:justinBeiber232` will have `flag` set to `true`( could a `boolean` value) indicating feed record of `prashant123` is not precomputed}, in the asyc worker queue we will ignore the requests for such users.
+      - On the read side when the user requests their feed via feed service, we can grab their (partially) precomputed feed from the `Feed` table and merge it with with those accounts which are not precomputed( basically we will know there is a `flag` set on `prashant123:justinBeiber232` and we will get recent post of `justinBeiber232` and merge it with the partially computed feed of `prashant123`) 
+      - This hybrid approach allows us to choose if we want to fan out on read or write, and for most users we will do little bit of both.
+      - This way we don't need One-Size-Fit-All Solution.
+    - Challenges:
+      - Doing the merging of feeds at read time vs at write time means more computation needs to be done in the Feed Service. We can tune the threshold over which an account is ignored in precomputation.
+      - Meaning we can put a threshold which once reached the given account will be flagged are will be ignored for precomputation.
+   
   
-- How to handle uneven read of posts?
+![aync-worker](image-5.png)
 
-## Tips
+- **How to handle uneven read of posts?**
+  - Feed service is still going to Post table to get the posts (**Note** `Feed cache` is storing the list of recent `postIds` for the feed of the given user, the feed service after getting these `postIds` going to `Post` table to get the details of the Post and returning the feed to the given user)
+  - For vast majority of the posts they will be read for few days and then never again, for some posts(specially from the accounts of user having millions of followers), the no. of reads the post experiences in the first few hours will be massive.
+  - DynamoDb offers nearly infinite scaling with conditions like there being even load across the keyspace(partition key) if some posts are getting 500 read requests per seconds and others are getting 0 then it is not even distribution of load.
+  - How do we solve this **issue of hot key in post table**?
+    - **Good Solution: post cache with large keyspace**
+      - *Approach*:
+        - Insert distributed post cache between reader of the post and the post table itself.
+        - Since the posts are very less likely to be edited than created we can keep a long Time to live (`TTL`) on posts and have our evict the least recently used(LRU) posts.
+        - As long as the cache is big enough to house most of the recent posts the vast majority of the post table requests will hit our post cache instead.
+        - If we have N hosts (in distributed Redis cache cluster there  are many nodes or server on which the load is distributed read [this](https://github.com/prashantRmishra/System-design/tree/main/redis#issues-and-remediation)) with M space each then we can effectively house N*M posts.
+      - When the posts are edited we can simply invalidate the cache for that `postId`
+      - For this we can use Redis cache and use postId as key to distribute the load across various server or nodes in the Redis cluster.
+    - *Challenge*:
+      - It has the same **hot key problem** that the `Post` table had.
+      - For the unlucky shard/partition that has multiple viral posts will be getting uneven traffic which will make the cache hard to scale and many of the nodes/server in the Redis cluster will be under utilized.
+  - **Great Solution: Redundant Post cache**
+    - Like the distributed cache solution above insert a replicated cache between the readers of the post table and the post table itself.
+    - Keep same approach for TTL and eviction as above approach.
+    - Unlike the distributed cache solution above we can choose to have multiple distinct cache that our reads can hit.
+    - If we have N servers/nodes/hosts in each distributed cache( must see:[Redis cluster](https://camo.githubusercontent.com/ef552ec7bc1635f5de57d9a95b9704d94fcd2647ff85b49478dac9609ebf648b/68747470733a2f2f6465762d746f2d75706c6f6164732e73332e616d617a6f6e6177732e636f6d2f75706c6f6164732f61727469636c65732f6c7837306963617a3435707a376c6230396661772e706e67)) with M memory of each server/node/host. In limit we can create N distinct caches(redis cluster) with total effective cachable space of M (instead of N*M) but with N time as much throughput.
+      - *Clustered Redis has hash slots distributed across members of the [Redis cluster](https://camo.githubusercontent.com/ef552ec7bc1635f5de57d9a95b9704d94fcd2647ff85b49478dac9609ebf648b/68747470733a2f2f6465762d746f2d75706c6f6164732e73332e616d617a6f6e6177732e636f6d2f75706c6f6164732f61727469636c65732f6c7837306963617a3435707a376c6230396661772e706e67) (nodes). While there is replication, that replication is primary/secondary and the secondary receives no traffic while the primary is active. The problem with this setup is that a hot key means all traffic is routed to a single node.*
+      - *Instead of having a cold standby and sharding our keyspace, we can simply have multiple instances which are load balanced by the client. This means even a hot key is distributed across many nodes*
+    - This means we can evenly distribute the load of a viral post across our entire cache fleet.
+
+
+![distributed-cache](image-8.png)
+
+![multi-instance-distributed-cache](image-7.png)
+---
 
 ## Questions
-    What is api gateway? is it any different from load balancers ?
-    What is graph database like Neo4j?
-    What is partition key of Amazon's DynamoDb?
+
+What is api gateway? is it any different from load balancers ?
+What is graph database like Neo4j?
+What is partition key of Amazon's DynamoDb?
+
+---
