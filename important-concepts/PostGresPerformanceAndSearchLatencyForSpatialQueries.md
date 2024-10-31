@@ -79,6 +79,7 @@ Redis also support GeoSpatial Index called GeoHashing
 -  So we can look at the first,or second or third character of the hash to decide the larger region where the result lies in(in case of Uber it is the drivers location)
 -  Redis supports GeoHashing out of the box
 
+![geohashing](image-1.png)
 **Pros**:
 Easy to calculate(hash)
 Easy to store(it is just a string)
