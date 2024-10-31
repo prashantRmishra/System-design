@@ -95,7 +95,8 @@ PATCH /ride/driver/update > next pickup(lat/long) where the driver have to go | 
 Based on the Rider's input of source and destination the ride service will (with the help of third party mapping service provider like GoogleMap ETA will be obtained based on the source and destination given) compute the fare based on the ETA.
 The details of the ride will be created in the primary db with attributes like `rideId, ETA,Source,destination,fare or price, status`,etc and the partial details of the ride like `ETA, fare` and `rideId` will be given as response to the `Rider`
 
-note: below happens once the Driver has received the Ride notification from the `ride matching service`
+Note: below happens once the Driver has received the Ride notification from the `ride matching service`
+
 Once the Driver accepts the ride request, request will be sent to `ride service` which will update the `Ride` (by updating the `driverId`) `status` like `matched` or something similar.
 
 Last thing that happens is Drives updates that the source/destination has arrived and the `ride service` updates the Ride status to `at pickup | at destination | ride complete` something like that and driver get the response of the next location (lat/long) where they need to be or null
