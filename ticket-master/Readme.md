@@ -10,7 +10,9 @@ Has ~100M DAU
   - [High Level Design](#high-level-design)
     - [Issues](#issues)
   - [Deep Dives](#deep-dives)
+    - [Improve event search Latency](#improve-event-search-latency)
     - [Scalability: How to handle huge surge in Users](#scalability-how-to-handle-huge-surge-in-users)
+    - [How to Improve availability](#how-to-improve-availability)
     - [Caching](#caching)
   - [Questions](#questions)
 
@@ -172,6 +174,7 @@ This will result in bad user experience, this is a conversation we can have with
 ---
 ## Deep Dives
 
+### Improve event search Latency
 How to improve the search to achieve low latency search 
 Use something like [ElasticSearch](https://github.com/prashantRmishra/System-design/blob/main/elastic-search/readme.md) that uses [Inverted Index](https://github.com/prashantRmishra/System-design/blob/main/elastic-search/readme.md#how-documents-are-stored-inside-the-lucene-segments) to make searching document by terms really quickly
 ![invertedIndex](image-5.png)
@@ -224,6 +227,7 @@ So when there is event Cricket world cup, instead of seeing the event page they 
 This queue can be redis sorted set (sorted on the basis of arrival) or some other implementation that make it random so that every one get a fare chance and not just the users that are closest to the servers
 We can have some event driven logic like we let the 1st 100 people in once 100 seats are book we let the next 100 people in and so on. So they are pulled off of the queue and those uses are notified (on the same sse connection created prior), they are let in and can book ticket.
 
+### How to Improve availability
 **Similarly, we can say for services we can scale horizontally based on load cpu usage etc**.
 We choose to shard/not shard based on amount of data we are expecting, shard on based on venueId, or some other Ids
 
