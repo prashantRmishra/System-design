@@ -165,5 +165,55 @@ If anything changes in the primary database, the change can be ingested to the E
   - So There are somethings to consider depending on the product requirement.
   ![ingest-via-event-crud-service](image-6.png) 
 - **Update via Change data capture** (CDC):
-  - So anytimes something changes in the database that change event will be put on a stream and we can consume it and update the ElasticSearch.
+  - So anytime something changes in the database that change event will be put on a stream and we can consume it and update the ElasticSearch.
+  - Note CDC in the diagram is just an abstraction, as it involves stream there will some medium for the stream like some queue and there will be some consumer group or group of worker that will be consuming the stream and updating the ElasticSearch.
+  - There is a limit to how much write ElasticSearch can handle per second at will have to create/updated indexes
+  - So if you system has a lot of updates that needs to be written then we have to think of something smart like using queue and batching the writes etc.
+  - But in our case Events, venues of those events dates they hardly change and writes are not that much like the admins may add 10s or 100 or at max 1000s of events in a day but that is nothing in such case we don't need queue to batch the writes, we can directly updated the ElasticSearch search when ever there is an update the in the database.
+    - **How can we make it even more faster?** What about popular queries? *like every body is searching for Arijit Singh's concert*
+    - We can use caching mechanism
+      1. For ElasticSearch you wanna use AWS Managed ElasticSearch called **OpenSearch**
+        - Open search supports **node query caching**, it is nothing but a cache on each of you instances of your ElasticSearch instances/shards.
+        - It caches top 10k queries to that shard in a least recently used cache.
+        - Once enabled by change in simple config it does the job and works great.
+      2.  We can use **redis/memecached** in front of the ElasticSearch and we cache some search term or normalization of your search term and there results (and invalidate them when updates are made)
+      3.  We can use CDN for static files (we are going to cache the api's calls and their results on the cdn, this will be short period of time like 30s or something) that way when a lot of people are searching for the same exact term then we can return the results immediately from CDN closet to them geographically
+   ![cdn](image-7.png)
+      4.  pros
+          1.  Superfast
+      5.  cons
+          1.  becomes less useful when you have more permutations of your search queries like search term, lat,long, type or date it will be inefficient. 
+
+## Scalability: How to handle huge surge in Users
+
+*How to handle stale seatMap* ?
+We know currently we get the event details by hitting the event-crud-service (which goes to db and gets details of event, venue, performer) and when user clicks on see/view available seat map the event-crud-services get all the tickets that are in 'available' state and cross references then with the redis caches and drops the ticketIds that are present in the cache and returns the remaining available seats back to user.
+This is good but when there is huge surge when some people are viewing the seatMap at the same time a lot of people are booking the seats as well, and if someone tries to book a ticket which is already booked they will get an error( as the booked seats are not getting updated in realtime when booking and viewing happening at the same time), this leads to bad user experience.
+We have to think of a way to update the seatMap as soon as it is booked so that seatMap being viewed by other user can be updated in real time.
+Solution: User sends HTTPS request and the request is kept open by for 30s to 1mins or so for the server to be able to respond and this can happen in a while loop, you can keep **long polling** and the server can keep sending response back (in our case results of updated seat map)
+  It is cheap,easy to implement, does not require additional infra if the users are not on this page for long time
+  But if the users sit on this page for longer period of time like 5mins, 10mins or even 1hr then we might need a more sophisticated approach like opening a persistent connection like **websockets**(*bidirectional*) or we can go ahead with the **server sent events**(SSC) which is a persistent connection between client and server where server send response back to client as long as the connection is open(when the user sends request (http) for the first time for the seat map)
+  *Note*: **SSC** are **uni-directional** i.e only server can send data to client and that is what we need in our use case. So we will setup a SSC connection between Api-gateway, event-crud-service and the client.
+
+This is great but *what if there is world cup final between India and Pakistan?*, million of people will try to the same 100K seats at the same time and the screen goes black(probably the system could not handle the sudden surge or users) that is not great
+*Solution*: we need to introduce a choke point i.e we need to protect our backend services
+The choke point would be introducing virtual waiting queue
+This virtual waiting queue can only be enabled for very popular events ( let say admin can enable them )
+So when there is event Cricket world cup, instead of seeing the event page they enter a waiting queue and they get a message like thank you for you interest we will let you know when you are out of the queue
+This queue can be redis sorted set (sorted on the basis of arrival) or some other implementation that make it random so that every one get a fare chance and not just the users that are closest to the servers
+We can have some event driven logic like we let the 1st 100 people in once 100 seats are book we let the next 100 people in and so on. So they are pulled off of the queue and those uses are notified (on the same sse connection created prior), they are let in and can book ticket.
+
+**Similarly, we can say for services we can scale horizontally based on load cpu usage etc**.
+We choose to shard/not shard based on amount of data we are expecting, shard on based on venueId, or some other Ids
+
+**Caching**
+
+Since the reads are so much higher than the writes we can reduce the read load on our postgres DB by introducing caching in front of the postgres db
+Since the Event, Venue, Performers are hardly changing we can cache them in the redis cache (we can use eviction policy like LRU, we will have to invalidate cache if something in the postgres db changes)
+So requests will hit redis cache from event-crud-service before hitting the db and will probably get the details, this will be must faster and will save the round trip
+
+![final-deep-dive-design](image-8.png)
+
+
+
 
