@@ -92,6 +92,7 @@ PATCH /ride/driver/update > next pickup(lat/long) where the driver have to go | 
 ## Hight Level Design
 
 ***ride service***
+
 Based on the Rider's input of source and destination the ride service will (with the help of third party mapping service provider like GoogleMap ETA will be obtained based on the source and destination given) compute the fare based on the ETA.
 The details of the ride will be created in the primary db with attributes like `rideId, ETA,Source,destination,fare or price, status`,etc and the partial details of the ride like `ETA, fare` and `rideId` will be given as response to the `Rider`
 
