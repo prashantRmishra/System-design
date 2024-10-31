@@ -1,6 +1,22 @@
-## TicketMaster
+# TicketMaster/BookMyShow system design
 It is an online platform that allows users to purchase tickets for Concerts, Sport events, Theaters, and other live entertainment.
 Has ~100M DAU
+
+
+- [TicketMaster/BookMyShow system design](#ticketmasterbookmyshow-system-design)
+  - [Requirements](#requirements)
+  - [Core entities](#core-entities)
+  - [Api or interfaces](#api-or-interfaces)
+  - [High Level Design](#high-level-design)
+    - [Issues](#issues)
+  - [Deep Dives](#deep-dives)
+    - [Scalability: How to handle huge surge in Users](#scalability-how-to-handle-huge-surge-in-users)
+    - [Caching](#caching)
+  - [Questions](#questions)
+
+---
+
+## Requirements
 
 Functional Requirements
 - Book ticket
@@ -21,7 +37,10 @@ Out of scope Non functional requirements
 - fault tolerance
 - etc
 
-Core entities (It is nothing but the **data this is persisted** in the system and is exchanged between the **APIs**)
+---
+
+## Core entities 
+(It is nothing but the **data this is persisted** in the system and is exchanged between the **APIs**)
 - Event ( Details of the event)
 - Venue ( The place where event will be held)
 - Performer ( The detail of the artist who will be performing)
@@ -32,23 +51,24 @@ Core entities (It is nothing but the **data this is persisted** in the system an
 💡 I not gonna list key fields and columns yet because I don't know them yet, I am too early in my design they are going to evolve naturally, when we will go on ahead in deep dives/high level design we will be more clear on exactly the fields that matter
 </div>
 
+---
 
 ## Api or interfaces
 
-**Search**
+**Search for event**
 ```json
 GET /search?token={token}&location={location}&date{date}
 ///Response: list of events with limited amount of information on the event
 
 ```
-**Event**
+**Get Event details**
 
 ```json
 GET /event/:eventId
 //Response: event details like venue, date, performer, ticket[] (list of available tickets) etc.
 ```
 
-**Booking**
+**Booking or book ticket for an Event**
 
 It is a two phase process
 - You see a seat map and you choose a seat and go to second phase to purchase that ticket(associated to that seat)
@@ -71,7 +91,7 @@ It is a two phase process
 
     }
 ```
-
+---
 ## High Level Design
 
 ***Simple High level design that satisfies our functional requirements, some of the assumption may not scale but that is fine, as that will be refined eventually in deep dives***
@@ -149,6 +169,7 @@ This will result in bad user experience, this is a conversation we can have with
 
 ![hightlevel-design](image-4.png)
 
+---
 ## Deep Dives
 
 How to improve the search to achieve low latency search 
@@ -179,12 +200,12 @@ If anything changes in the primary database, the change can be ingested to the E
       2.  We can use **redis/memecached** in front of the ElasticSearch and we cache some search term or normalization of your search term and there results (and invalidate them when updates are made)
       3.  We can use CDN for static files (we are going to cache the api's calls and their results on the cdn, this will be short period of time like 30s or something) that way when a lot of people are searching for the same exact term then we can return the results immediately from CDN closet to them geographically
    ![cdn](image-7.png)
-      4.  pros
+      4.  *pros*
           1.  Superfast
-      5.  cons
+      5.  *cons*
           1.  becomes less useful when you have more permutations of your search queries like search term, lat,long, type or date it will be inefficient. 
 
-## Scalability: How to handle huge surge in Users
+### Scalability: How to handle huge surge in Users
 
 *How to handle stale seatMap* ?
 We know currently we get the event details by hitting the event-crud-service (which goes to db and gets details of event, venue, performer) and when user clicks on see/view available seat map the event-crud-services get all the tickets that are in 'available' state and cross references then with the redis caches and drops the ticketIds that are present in the cache and returns the remaining available seats back to user.
@@ -206,7 +227,7 @@ We can have some event driven logic like we let the 1st 100 people in once 100 s
 **Similarly, we can say for services we can scale horizontally based on load cpu usage etc**.
 We choose to shard/not shard based on amount of data we are expecting, shard on based on venueId, or some other Ids
 
-**Caching**
+### Caching
 
 Since the reads are so much higher than the writes we can reduce the read load on our postgres DB by introducing caching in front of the postgres db
 Since the Event, Venue, Performers are hardly changing we can cache them in the redis cache (we can use eviction policy like LRU, we will have to invalidate cache if something in the postgres db changes)
@@ -214,6 +235,15 @@ So requests will hit redis cache from event-crud-service before hitting the db a
 
 ![final-deep-dive-design](image-8.png)
 
+---
+
+## Questions
+
+How GeoSpatial Index works?
+
+What is GeoHashing using in ElasticSearch?
+
+What is QuadTrees ?
 
 
 
