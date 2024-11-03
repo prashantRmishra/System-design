@@ -1,14 +1,15 @@
 # Design yelp like system
 Yelp is a web application/mobile application that allows users to find businesses online, view details of the business based on location and rate/review businesses.
 
-- [Requirements](#requirements)
-- [Core entities](#core-entities)
-- [Api or interface](#api-or-interface)
-- [High level design](#high-level-design)
-- [Deep Dives](#deep-dives)
-  - [How to search efficiently?](#how-to-search-efficiently)
-  - [How to insure Hight availability?](#how-to-insure-hight-availability)
-  - [How to handle one user one review per business?](#how-to-handle-one-user-one-review-per-business)
+- [Design yelp like system](#design-yelp-like-system)
+  - [Requirements](#requirements)
+  - [Core entities](#core-entities)
+  - [Api or interface](#api-or-interface)
+  - [High level design](#high-level-design)
+  - [Deep Dives](#deep-dives)
+    - [How to search efficiently?](#how-to-search-efficiently)
+    - [How to insure Hight availability?](#how-to-insure-hight-availability)
+    - [How to handle one user one review per business?](#how-to-handle-one-user-one-review-per-business)
 
 ## Requirements
 
@@ -90,14 +91,32 @@ Storage estimation
 ```
 We can assume modern aws managed postgresDb can store upto 100TB of data
 If the each business details amounts to 2KB size the for 10M = 10M*2KB = 20GB(which is nothing entire business details can fit into a single DB).
-We can create multiple copies/replicas of the data for fault tolerance/availability
+
+Even if we multiple the 20GB by 10 (for rating/review data/metadata) i.e 20*10 = 200GB then also this is nothing.
+
+We can create a copy/replica of the data for fault tolerance and availability
 ```
 
 
 **How are we going to calculate average rating ?**
-Since there are not much of writes compared to reads so when ever review/rating are created at the same time average rating can also be calculated and updated in the `avgRating` column of `Rating` table.
 
-Since we are getting `3k` write per month and an optimized instance of `postgresDB` can handle `4k` requests/second which is huge compared to monthly writes(hence we can calculate the average rating on the fly without affecting performance at all)
+**Solution(s)**
+
+- *Synchronous update(on the fly)*
+Since there are not much of writes compared to reads so when ever review/rating are created at the same time average rating can also be calculated and updated in the `avgRating` column of `Rating` table.
+we will need to columns for this `avgRating`, `totalCount`
+
+    ```
+    avgRating  = (totalCount*avgRating + newRating)/(totalCount + 1);
+    also
+    totalCount  = totalCount+1;
+
+    ```
+    Since we are getting `3k` write per month and an optimized instance of `postgresDB` can handle `4k` requests/second which is huge compared to monthly writes(hence we can calculate the average rating on the fly without affecting performance at all)
+
+
+- *Crone Job(Asynchronous updated)*
+If we decide to not updated the average rating on the fly( synchronously) then we can have something like a crone job that will run periodically and update the total count and average rating (asynchronously)
 
 When clicked on one of the results then we fetch the details of the business  via rating service or business crud service
 
@@ -108,8 +127,24 @@ All the services (API gateway, search service, rating service) etc can be scaled
 ### How to handle one user one review per business?
 We can handle this in business logic itself, for any user writing the review for a business we can check if the rating for the given business already exists by the same user, if yes then we can display a proper message or error.
 
-Issues
-What if a new team is working on the different services(new) and they are not aware of this business logic in the written in rating service
+**Issues**
+*What if a new team(say data engineering) is working on the different services(new) and they are kind of back filling the review and they are not aware of this business logic in the written in rating or crud service then how will we make sure 1:1 business to user rating?*
+
+**Solution(s)**
+
+*Database constraint*
+In such case we can simply rely on the database validation constraint like we can keep userId unique for the given businessId
+
+```
+ UNIQUE (userID, businessID)
+```
+*Distributed lock*
+We can use distributed lock like redis on the userId
+Which ever service is writing the review first a distributed lock will be acquired on the userId So that no other service can use the same userId to write the review
+later once the review has been created we can create a mapping in the redis using redis hashmap of userId and businessId (the same can also be persisted in the db)
+
+So that any other service when try to write review at a later point of time with a userId(that has already been used to write review for the same business) we can quickly check if the userId is present in the cache or not if yes then error can be returned.
+
 
 
 ![deepdive](image-1.png)
