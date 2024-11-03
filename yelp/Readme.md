@@ -1,10 +1,14 @@
-Design yelp like system
+# Design yelp like system
 Yelp is a web application/mobile application that allows users to find businesses online, view details of the business based on location and rate/review businesses.
 
 - [Requirements](#requirements)
 - [Core entities](#core-entities)
 - [Api or interface](#api-or-interface)
 - [High level design](#high-level-design)
+- [Deep Dives](#deep-dives)
+  - [How to search efficiently?](#how-to-search-efficiently)
+  - [How to insure Hight availability?](#how-to-insure-hight-availability)
+  - [How to handle one user one review per business?](#how-to-handle-one-user-one-review-per-business)
 
 ## Requirements
 
@@ -54,18 +58,58 @@ POST /review > 200 (rating created )
 
 ## High level design
 
+![highlevel](image.png)
+
 ***search service***: self explanatory in the diagram
+
+In summary search service returns list of businesses ( partial details like name, average rating of the business, etc)
+
+***rating service*** 
+review/rating created by the user(s) will be updated in the rating table.
+
+
+## Deep Dives
+
+### How to search efficiently?
+
 For efficient searching we can use **elastic search database** that is optimized for searching, which is very efficient when the data is read heavy and does not change that often, since in yelp like system people will be reading(searching businesses and/or viewing details of the businesses) more than writing reviews (another write use case will be adding details of more businesses in the platform)
-Elastic search can utilized Inverted index and doc value index for searching based on terms and it also supports GIS or Geo Spatial Index called **Geohashing** which can also be used to optimize search results based on the `latitude` and `longitude`.
+Elastic search can utilized [Inverted index](https://github.com/prashantRmishra/System-design/tree/main/elastic-search#how-documents-are-stored-inside-the-lucene-segments) and [doc value](https://github.com/prashantRmishra/System-design/tree/main/elastic-search#how-to-match-the-search-query) index for searching based on terms and it also supports GIS or Geo Spatial Index called [Geohashing](https://github.com/prashantRmishra/System-design/blob/main/important-concepts/PostGresPerformanceAndSearchLatencyForSpatialQueries.md#geohashing) which can also be used to optimize search results based on the `latitude` and `longitude`.
 
 For updating the data in the elastic search (that needs to happen when ever there is some write in the actual data in the primary db) this change can be propagated in the elastic search db using **CDC**(Change Data Capture)
 
-Crude estimations:
+**Crude estimations**
+
+*Writes*
+```
 10M businesses
 Assuming 100M monthly active users
-100:1(read to write ration) then 1M users are writing review every months which is nothing but 33k review per day which is not that much
-we can assume modern aws managed postgresDb can store upto 100TB of data
-If the each business details amounts to 2KB size the for 10M = 10M*2KB = 20GB(which is nothing entire details can fit into a DB) 
+1000:1(read to write ration) then 0.1M users are writing review every months which is nothing but 3k review(writes) per day which is nothing
+```
+Storage estimation
+
+```
+We can assume modern aws managed postgresDb can store upto 100TB of data
+If the each business details amounts to 2KB size the for 10M = 10M*2KB = 20GB(which is nothing entire business details can fit into a single DB).
+We can create multiple copies/replicas of the data for fault tolerance/availability
+```
 
 
+**How are we going to calculate average rating ?**
+Since there are not much of writes compared to reads so when ever review/rating are created at the same time average rating can also be calculated and updated in the `avgRating` column of `Rating` table.
 
+Since we are getting `3k` write per month and an optimized instance of `postgresDB` can handle `4k` requests/second which is huge compared to monthly writes(hence we can calculate the average rating on the fly without affecting performance at all)
+
+When clicked on one of the results then we fetch the details of the business  via rating service or business crud service
+
+
+### How to insure Hight availability?
+All the services (API gateway, search service, rating service) etc can be scaled horizontally depending on the traffic and surge of requests
+
+### How to handle one user one review per business?
+We can handle this in business logic itself, for any user writing the review for a business we can check if the rating for the given business already exists by the same user, if yes then we can display a proper message or error.
+
+Issues
+What if a new team is working on the different services(new) and they are not aware of this business logic in the written in rating service
+
+
+![deepdive](image-1.png)
