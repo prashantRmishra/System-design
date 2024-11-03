@@ -123,7 +123,7 @@ There are a lot of complexity involved while creating the index e.g like the wor
 Sometimes the search query is such that it wants the results to be sorted on the basis of price(taking example of books index), but since our index is giving us the list of ID's of the document that has the keyword present in the search query, how do we transform it to get the results sorted by the price ?
 
 We can think of something like columnar data store where fixed length column value are stored that can be concatenated together to get the desired result.
-What columnar type storage does is it allows us to get single of small number of field values across all the documents very quickly. So if we have large number of docIds we can grab all of their prices without having to worry about other fields values ( like iterating or crawling over all the rows of the table grabbing each row (in sql database)).
+What columnar type storage does is it allows us to get single or small number of field values across all the documents very quickly. So if we have large number of docIds we can grab all of their prices without having to worry about other fields values ( like iterating or crawling over all the rows of the table grabbing each row (in sql database)).
 
 
 ![](./image%20copy.png)
