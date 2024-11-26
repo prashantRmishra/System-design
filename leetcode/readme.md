@@ -1,6 +1,30 @@
 # LeetCode System Design (Online Judge)
 
+### Table of Contents
 
+- [LeetCode System Design (Online Judge)](#leetcode-system-design-online-judge)
+    - [Table of Contents](#table-of-contents)
+  - [Requirements](#requirements)
+    - [Functional](#functional)
+    - [Non functional](#non-functional)
+      - [Scale of the system](#scale-of-the-system)
+  - [Core Entities](#core-entities)
+  - [API or interfaces](#api-or-interfaces)
+  - [High level Design](#high-level-design)
+    - [Network Isolation to run the code submitted by the users](#network-isolation-to-run-the-code-submitted-by-the-users)
+      - [Security of docker containers](#security-of-docker-containers)
+  - [Deep Dives](#deep-dives)
+    - [Near realtime/live leaderboard ranking of the competitions](#near-realtimelive-leaderboard-ranking-of-the-competitions)
+      - [Expensive Query problem](#expensive-query-problem)
+      - [Using cache with TTL](#using-cache-with-ttl)
+      - [Using cache and crone job](#using-cache-and-crone-job)
+      - [Update cache on the fly](#update-cache-on-the-fly)
+      - [Sorted set in redis cache](#sorted-set-in-redis-cache)
+    - [Availability \>\> Consistency](#availability--consistency)
+    - [Isolation to run user code](#isolation-to-run-user-code)
+    - [Scale to support 100K or more users during peak times like during](#scale-to-support-100k-or-more-users-during-peak-times-like-during)
+
+This structure provides a clear, navigable hierarchy for the detailed markdown content.
 ## Requirements
 
 ### Functional
@@ -136,14 +160,14 @@ value:SortedSet
 - Simple solution will be to use long polling despite how simple it sounds but delay of 2 to 3 seconds is alright given the overhead we will be avoiding by using this simple solution that does not require any additional infra.
 So, we(user) can keep polling to get the latest updates of the leaderboard page which we(user) are looking at.
 
-#### Availability >> Consistency
+### Availability >> Consistency
 Design implemented so far itself prioritizes availability we don't have any locking/acid property use case in our system
 Of course we will have basic stuff like Load balancers between ours servers that will be scaling horizontally 
 
 ### [Isolation to run user code](#network-isolation-to-run-the-code-submitted-by-the-users)
 
 
-#### Scale to support 100K or more users during peak times like during
+### Scale to support 100K or more users during peak times like during
 
 This is also part of availability of the system
 There is a chance we might not be able to scale the docker containers (running on a server ) fast enough to handle huge influx of user submission, in that case we might start dropping user submissions, which is not good at all.
