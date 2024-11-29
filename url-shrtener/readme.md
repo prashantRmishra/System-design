@@ -37,6 +37,7 @@ but they should work after few seconds like 5 or 10 seconds.
 ## Core entities
 
 URL i.e originalURL and shortURL
+
 User
 
 ## Api or interfaces
