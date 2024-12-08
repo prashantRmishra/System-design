@@ -4,6 +4,10 @@ I have created these as a reading material for me as well as for anyone who is i
 
 
 ## Some common pointers to keep in handy
+
+### AWS instance 
+Top aws network optimized instances can handle 400Gbits/s of data.
+
 ### [Postgres](important-concepts/PostGresPerformanceAndSearchLatencyForSpatialQueries.md)
 **1k  to 4k request/s** is the capacity of highly optimized **Postgres** instance
 
