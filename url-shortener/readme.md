@@ -137,7 +137,7 @@ This autoscaling will also insure the high **availability** of the system
 
 #### Scaling db
 Let us say we have 500Bytes of data in each row * 1B rows = 500GB, which is not that much and can be stored in a single db server
-as modern SSds have more than 1kTB of space 
+as modern SSds have more than 1TB of space 
 
 *For fault tolerance*
 - create read replicas
