@@ -12,19 +12,19 @@
 
 ---
 
-![](./image%20copy%203.png)
-
----
-
 ![](./image%20copy%204.png)
 
 ---
 
 ### Terminologies
 **Brokers**: Servers(physical or virtual) that hold the "queue".
+
 **Partitions**: The "queue" an ordered, immutable sequence of messages that we append to, like a log file. Each broker can have multiple partitions.
+
 **Topics**: Logical groupings of partitions, you publish to and consume from topics in kafka.
+
 **Producer**: Write messages/records to topics.
+
 **Consumer**: Read messages/records off of topics.
 
 ---
@@ -62,7 +62,9 @@
 ![](./image%20copy%206.png)
 
 **Leader** replica handles all the read and write (note assignment of leader is done by some cluster controller in kafka).
-**Follower** do not handle read/write but passively replicate data from the leader( they can be present on the same or different brokers), they are ready to take over if the leader goes down. There are there to insure durability and fault tolerance.
+
+**Follower** do not handle read/write but passively replicate data from the leader( they can be present on the same or different brokers), they are ready to take over if the leader goes down. They are there to insure durability and fault tolerance.
+
 **Consumer groups** ensure that the messages are read only once by the consumers.
 
 
