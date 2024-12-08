@@ -8,6 +8,8 @@ I have created these as a reading material for me as well as for anyone who is i
 ### AWS instance 
 Top aws network optimized instances can handle 400Gbits/s of data.
 
+An average ec2 instance can handle on an average of 1000 requests/second ( this is reasonable enough assumption) 
+
 ### [Postgres](important-concepts/PostGresPerformanceAndSearchLatencyForSpatialQueries.md)
 **1k  to 4k request/s** is the capacity of highly optimized **Postgres** instance
 
