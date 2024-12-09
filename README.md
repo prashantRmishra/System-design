@@ -11,7 +11,9 @@ Top aws network optimized instances can handle 400Gbits/s of data.
 An average ec2 instance can handle on an average of 1000 requests/second ( this is reasonable enough assumption) 
 
 ### [Postgres](important-concepts/PostGresPerformanceAndSearchLatencyForSpatialQueries.md)
-**1k  to 4k request/s** is the capacity of highly optimized **Postgres** instance
+**1k  to 4k request/s** is the capacity of highly optimized **Postgres** instance.
+
+We can assume modern aws managed postgresDb can store upto **100TB** of data
 
 ### [Redis](redis/Readme.md)
 **400k to 1M request/second** is the capacity of highly optimized **Redis** in-memory cache
