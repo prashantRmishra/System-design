@@ -1,12 +1,20 @@
 # Design YouTube
 
+- [Design YouTube](#design-youtube)
+  - [Functional Requirements](#functional-requirements)
+  - [Non-Functional Requirements](#non-functional-requirements)
+  - [Scale of the system](#scale-of-the-system)
+  - [Core entities](#core-entities)
+  - [API or interface of the system](#api-or-interface-of-the-system)
+  - [Database Design](#database-design)
+  - [High-Level Design with deep dives](#high-level-design-with-deep-dives)
 
 
-## Functional Requirements:**  
+## Functional Requirements 
 - Uploading videos  
 - Watching videos  
 
-## Non-Functional Requirements:**  
+## Non-Functional Requirements 
 - Availability > Consistency  
 
 **Extended Requirements:**  
@@ -50,7 +58,7 @@ View video
 GET /watch/[videoId]?start={start}&end={end} ---> next chunk of video from start to end
 ```
 
-**Database Design:**  
+## Database Design  
 For storing videos, we can consider Amazon S3 or similar cloud services that provide high availability and reliability.
 
 User details and video metadata, including video URLs, can be stored in a NoSQL database like MongoDB. Since MongoDB is non-relational and denormalized, it will allow faster searches. Additionally, we will store video URLs that can be used to access videos stored in Amazon S3 or in a cache (discussed later).
@@ -73,7 +81,7 @@ We will cache only the most popular or most viewed videos, since only 5% of vide
 
 For cache replacement, we can use policies like **Least Recently Used (LRU)**.
 
-**High-Level Design:**
+## High-Level Design with deep dives
 
 _Uploading_: 
 
