@@ -2,47 +2,53 @@
 
 
 
-**Functional Requirements:**  
+## Functional Requirements:**  
 - Uploading videos  
 - Watching videos  
 
-**Non-Functional Requirements:**  
+## Non-Functional Requirements:**  
 - Availability > Consistency  
 
 **Extended Requirements:**  
 (Not mandatory)
 
+## Scale of the system
 **Design Considerations / Capacity Estimation:**
-
 **Traffic Estimation:**  
-Let's assume there are 10 billion (100 crore) total users, out of which 1 billion (10 crore) are active users.  
-For every video uploaded, let's assume there are 100 videos watched simultaneously.  
-This gives us a ratio of 100:1 (100 reads per 1 write).  
-
-From this analogy, if 5 videos are watched per day, it would mean that 5 * 1 billion = 5 billion (50 crore) videos are watched daily, with 5 million (50 lakh) video uploads.  
-Since the read-to-write ratio is 100:1, writes account for 1% of total reads.
+1B (100cr) total user and 100M DAU(10cr)  
+1000:1 (read:write) ratio 
+Which means 10^8/1001 ~= 10^5 write/day ~=66 write/minute (66 videos are created per minute)
 
 **Bandwidth Estimation:**  
 Not all videos receive the same traffic. We can assume that only the top 5% of videos will receive 90% of the traffic.
 
 **Storage Estimation:**  
-Let's assume the average video size is 10 MB, and 5 million videos are uploaded daily.  
-The total storage required daily would be:  
-5M * 10 MB = 50,000,000 MB = 50 GB.  
+Let's assume the average video size is 10 MB, and 10^5 are uploaded daily ~= 10^6MB = 1TB ~=30TB(monthly) ~=360TB or 0.36PB (yearly)
 
-For one month, it will be:  
-30 * 50 GB = 1.5 TB.  
+## Core entities 
+Video
 
-For one year:  
-1.5 TB * 12 = 18 TB.  
+User
 
-If a YouTube channel remains active for an average of 30 years, the total required storage will be:  
-30 * 18 TB = 540 TB.  
-(These are just estimates; actual numbers would be much higher.)
+## API or interface of the system
 
-**API Design:**  
-- `upload(userId, videoUrl, title, description)`  
-- `watch(requesterUserId, videoUrl)`
+Upload video
+
+```
+POST /upload --> 200 success HTTP code
+body{
+    videoFile,
+    Title,
+    desc,
+    Metadata
+}
+```
+
+View video
+
+```
+GET /watch/[videoId]?start={start}&end={end} ---> next chunk of video from start to end
+```
 
 **Database Design:**  
 For storing videos, we can consider Amazon S3 or similar cloud services that provide high availability and reliability.
@@ -75,10 +81,9 @@ _Uploading_:
 
 **How many instances of video encoders are needed?**  
 Let’s assume the video encoder takes 1 minute to encode a video.  
-With 5 million videos uploaded daily, we get:  
-5,000,000 / 24 = 208,333 videos per hour = 3,472 videos per minute.  
+And we are getting 66 videos per minute to write.  
 
-Since we are receiving 3,472 uploads per minute, we need at least 3,472 video encoder instances. Anything less will result in backlog on the queue, as the number of writes to the queue will eventually exceed the number of reads by the encoder process, causing delays in processing uploads.
+We need at least 66 instances of encoder, anything less will result in backlog on the queue, as the number of writes to the queue will eventually exceed the number of reads by the encoder process, causing delays in processing uploads.
 
 _Watching_: 
 
