@@ -101,3 +101,7 @@ YouTube uses HTTP, which is built on top of TCP.
 
 **Related Question:**  
 - **Why use a NoSQL database? How is it faster than SQL databases?**
+- How will you implement youtube feed? 
+  - [Use the same approach as the facebook feed](https://github.com/prashantRmishra/System-design/blob/main/facebook-news-feed/Readme.md)
+- How will you implement search feature in youtube?
+  - You can use [elastic search to optimize the search query](https://github.com/prashantRmishra/System-design/tree/main/elastic-search)
