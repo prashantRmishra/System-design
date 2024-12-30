@@ -10,6 +10,9 @@ Top aws network optimized instances can handle 400Gbits/s of data.
 
 An average ec2 instance can handle on an average of 1000 requests/second ( this is reasonable enough assumption) 
 
+### Aws managed api gateaway
+It has 10mb size limit on the POST body size, this restriction is in place to insure that the requests body size does not exceed a specific limit.
+
 ### [Postgres](important-concepts/PostGresPerformanceAndSearchLatencyForSpatialQueries.md)
 **1k  to 4k request/s** is the capacity of highly optimized **Postgres** instance.
 
