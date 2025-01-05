@@ -7,6 +7,7 @@ I have created these as a reading material for me as well as for anyone who is i
 
 ### AWS instance 
 Top aws network optimized instances can handle 400Gbits/s of data.
+And modern server and operating systems can handle 100k to 1M concurrent connections listening on a given port. Realistically, system resources like CPU, memory, and file descriptors become the bottleneck before you hit any theoretical limit
 
 An average ec2 instance can handle on an average of 1000 requests/second ( this is reasonable enough assumption) 
 
