@@ -35,7 +35,7 @@
 
 - Consistency in terms of purchasing product i.e one user one product Id
 - Availability in terms of searching of items, viewing details adding to cart(out of scope)
-- Low search latency > 1s
+- Low search latency <= 1s
 - Handle huge purchase surges like new phone dropped
 
 
