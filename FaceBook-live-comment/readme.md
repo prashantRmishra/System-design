@@ -79,6 +79,7 @@ Note: similar will be query to get old comments before user joined with ``create
 ***Don't delve too much into below optimization, you might want to briefly mention about below pagination approach via cache and move on, as it is not the focal point here***
 
 Feature of continue to scroll to see comments(old), you scroll up to see last 50 or so n and keep scrolling up to read comments. This is nothing but pagination, and we can achieve pagination here using cache(redis) when we fetch the old comments for the first time we can fetch last 1000 comments and store then in cache and return only 50.
+
 Next time when the user requests for the comments we can fetch the next 50 from the cache itself.
 We can keep ttl like 5mins(assumed narrow window within which the users might still be scrolling up) on the cache and have `key` as `userId:videoId` and `value` as `comments[]` sorted order to quickly fetch the comments on a video (`videoId`) and for the user (`userId`)
 
@@ -116,7 +117,8 @@ When a new comment comes in say `video1` the `Comment-Service` will quickly look
 The above solution is good for low latency comment broadcasting but it does not scale very well.
 
 When we horizontally scale the Comment-Service many users will be connected to different Comment-Services and if the comment comes in and lands on service A and viewers/users who are watching that video are connected to service B or C. And now service A does not have sse connections of those users, service A will somehow have to communicate with service B and C to send to comments to those Users.
-You see this issue now ?
+
+You see the issue now ?
 **This issue is solved in the deep dive of scaling to support millions of live video streaming below**
 
 
@@ -136,7 +138,8 @@ Hence we can create a different service (`LiveComment-Service`) for handling the
 ***When the `Comment-Service` receives a new comment how will it know which `LiveComment-Service` instance should it sent the new comment to ?*** 
 
 **Solution 1(Good): Zookeeper**
-A central Dispatcher-Service like **Zookeeper** (it is like a registry service that can be used in service discovery)
+A central Dispatcher-Service like **Zookeeper** (it is like a registry service that can be used in service discovery).
+
 `Zookeeper` will keep mapping of all the `LiveComment-Service` and the videos each are responsible for.
 So, when a new client want to connect over sse (to get live comments) it is going to request either to `Comment-Service` or `LiveComment-Service` and we are going to ask Zookeeper which `LiveComment-Service` this should subscribe to. Zookeeper will give us host ip address (and other details)
 
@@ -196,8 +199,10 @@ Advantage:
 We want them(instances of `LiveComment-Service`) to just listen to what matters 
 Something like the hash(videoId) % N (N is not of partitions or topics)
 And each of LiveComment-Service instances don't need to subscribe to all the topics they just need to subscribe to subset that they have an active client connected.
+
 In this way they (instances) will only be listening to messages that come in that are for you live videoId or something else that's in this hash grouping.
 It is not perfect but it will work.
+
 ![partitions](image-5.png)
 
 Note: we can not create partition based individual videoId due to limitations of kafka or in our case redis pub/sub
@@ -205,9 +210,12 @@ Note: we can not create partition based individual videoId due to limitations of
 
 **Finally Just another observation and/or optimization**
 if say only three users are listening/watching a live video we don't want them to be connected to different instances of `LiveComment-Service` and this will require all these 3 instance to subscribe to topics that is getting comments of those videos.
+
 We would want to co-locate them on the same `LiveComment-Service` instance as much as possible.
 Ideally we would want all the viewers of the same video connected to the same instance but, this is not possible because if no. of viewers of the video are 160M or more then single instance wont be enough(optimized instance can have at most 1M concurrent connection), in this case we will need at least 160 such instance. But at least it is 160 and not 500k(if we randomly assigns users to different instances).
+
 In case of zookeeper this was bit easier as whenever a new request comes in we will look into the zookeeper mapping and know where everybody else with that videoId is and we would just tell you/client to connect to that instance of `LiveComment-Service`.
+
 In case of pub/sub approach this is bit complex, in nutshell we can another zookeeper or another service and then your API Gateway via layer 7 load balancer(we can put load balancer between client and API gateway to route requests to various Gateways) can have in header what the live videoId is and ask the service (zookeeper or similar service) where should this request be routed and route the request to correct instance of `LiveComment-Service`.
 
 ### Database optimization and scaling for high write throughput
@@ -220,11 +228,16 @@ We did not talk about db scaling and optimization
 = 480cr = 4.8 billion writes per day
 ```
 So, we have huge amount of comment write daily.
+
 Given there is mild relation between Comments table, User and video table and our query is straight forward for getting the comments (old/new) we can use sql database(like postgres) but there are databases that are highly optimized for huge writes like **Cassandra** 
-So we can an index for the given videoId and we can use createdTimestamp as our sort key ,we can easily shard on video Id. Cassandra can scale horizontally. 
+
+So we can query an index for the given videoId and we can use createdTimestamp as our sort key ,we can easily shard on video Id. Cassandra can scale horizontally. 
+
 Cassandra will result in eventual consistency in some places but that is ok given our non functional requirement of eventual consistency of created comments.
+
 ## Questions
 What did we not use kafka for pub/sub message bus/channel?[know more](https://youtu.be/LjLx0fCd1k8?t=3116)
+
 Because kafka has a lot of overhead to subscribe and unsubscribe from channels and when users are scrolling through feed they are subscribing and unsubscribe to a live video stream very quickly and pubsub in redis makes it a lot more easier as it is in memory hence may be redis is better approach here
 
 
