@@ -22,7 +22,43 @@ What if you have to efficiently query by a different attribute like search for m
 ## Seconday Indexes 
 ### Global Seconday Index(GSI)
 Different Partition key from the table to query by an attribute
-![gis](image-1.png)
+![gis](image-2.png)
 ### Local Seconday Index(LSI)
 Same Partition key from the table but different sort key for alternate sorting
+![lis](image-3.png)
 
+## Accessing data
+```
+dynamodb.query(param,(error, data)=> console.log(data));
+```
+
+select * from users -> 
+```js
+const param ={TableName:'users'}
+```
+
+select * from users where userId = 101
+```js
+param ={
+    TableName:'users', 
+    KeyConditionExpression='userId=:id',
+    ExpressionAttributeValues:{
+        ':id':101
+        }
+    };
+```
+
+select * from orders where userId = 101 order by orderDate DESC ->
+```js
+param ={
+    TableName:'users', 
+    KeyConditionExpression='userId=:id',
+    ExpressionAttributeValues:{
+        ':id':101
+        }
+    ScanIndexForward: false//false for desc, and true for ascending
+    };
+```
+
+Note : **Transactions** are also supported in dynamoDB now
+![transactions](image-4.png)
