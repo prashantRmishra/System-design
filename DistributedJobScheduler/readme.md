@@ -1,5 +1,8 @@
 # Distributed job scheduler
+### [Reference](https://medium.com/@mayilb77/design-a-distributed-job-scheduler-for-millions-of-tasks-in-daily-operations-4132dc6d645f)
+
 Purpose: Scheduled email, Push notification, invoice generation and other such processes
+
 ## Functional requirements:
 - create, delete, view jobs created by user (support for both one time and recuring jobs)
 - view execution history of a given job
