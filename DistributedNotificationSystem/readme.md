@@ -43,7 +43,11 @@ body{
 ## High Level Design
 
 **Notification Service** <br>
-Users sends the notification details that needs to be sent, the notification service adds then into kafka
+Since this Notification system is to be built as SAAS product, it can be used by clients to sending notification (or can also be used within the org. for sending notification).
+Client sends the notification details that needs to be sent, the notification service adds then into kafka and respond back saying the notification will be sent in some secods(so, no need to keep the client block untill the notification is sent)
+This interface can have two model
+1) Client wanting to send notification to some email address (this model will be used by other companies using this product as saas)
+2) Notification is to be sent to the given userId and based on this info, the system needs to figure out how to send notification via sms, email, whatapps etc. (this model will be used within the company)
 Notification Prioritizer:<br>
 Based on the type of message it prioritizes messages  like otp(high),transactional(high) promotional(low) etc and puts them into respective topic queue.
 
