@@ -14,26 +14,29 @@ Yelp is a web application/mobile application that allows users to find businesse
 ## Requirements
 
 functional:
-User should be able to search for business
-User should be able to see details of the business
-User should be able to rate and review the business
+User should be able to search for business <br>
+User should be able to see details of the business <br>
+User should be able to rate and review the business <br>
 
 
 Non-functional:
-Low search latency
-High availability of the business details 
-100M MAU, 10M businesses
-user to business rating/review 1:1
+Low search latency <br>
+High availability of the business details  <br>
+100M MAU, 10M businesses <br>
+user to business rating/review 1:1 <br>
 
 out of scope
-GDPR compliance
-fault tolerance
-etc
+
+GDPR compliance <br>
+fault tolerance<br>
 
 ## Core entities
 Business
+
 Review
+
 Location
+
 User
 
 ## Api or interface
