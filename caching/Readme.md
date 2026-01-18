@@ -70,3 +70,56 @@ Cache is managed externally (a different server), all the servers(instances of t
 ### TTL(Time-To-Live)
 - Each item expires after a set time(e.g, 5 minutes).
 - Great for data that can go stale, like API responses.
+
+
+## Common Issues:
+
+### Cache stampede  or Thundering Hurd
+
+If your app is getting 100K read requests per second and you have cached the data that the users are reading with say ttl of 60seconds, so at the 61th second 100K requests will hit cache miss and the 100K request will go to the db overwhelming it and potentially bringing it down.
+
+![Thundering hurd](image-8.png)
+
+This is called thundering hurd (this for example happens in the case of Cache aside policy).
+
+### Cache Consistency 
+Say the TTL on an entry in the cache is 1 minute but the data is already updated in the db, so the users will read the stale data for the time till the ttl expires and the entry is updated in the cache as well.
+
+![cache stampede](image-7.png)
+
+This staleness in data is acceptable in some use cases like when user updates their profile picture on FaceBook. It is ok to not see the updated image instantly.
+But this staleness might not be acceptable always.
+
+There is no fixed solution for this but there are some workarounds
+
+- Invalidate/remove the entry in the cache when the entry is updated in the database (when consistency is important).
+- If some staleness is acceptable (like in case of profile update) we can keep very short TTLs (So that we don't see stale data for a very long time)
+  
+### Hot keys
+
+![hotkey](image-9.png)
+
+
+![hot-key-distributed](image-10.png)
+Hot Key is an entry that gets way more traffic than everything else.
+That single key can become large bottleneck for the system.
+That key might be receiving millions of request this may lead to overwhelming that that one node/shard of the cache where this key is located.
+
+
+Solution:
+- Replicate this hot key - put the entry in each of the instance in the cache cluster
+  - Now the app server can loadbalance among all the instances 
+- Add local fallback cache i.e nothing but in process cache (adding cache with the app server instance itself). This way the request will never hit the cache.
+
+## When should be bring up Caching
+ - Read-heavy workload
+ - Expensive queries
+ - High database cpu
+ - Latency requirements
+
+## How to Introduce Caching
+- Identify the bottleneck
+- Decide what to cache
+- Choose your cache architecture
+- Set an eviction policy
+- Address the downsides
